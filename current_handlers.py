@@ -1890,7 +1890,7 @@ def screen_input(hashMap,_files=None,_data=None):
                 hashMap.put("method",method)
                 
             elif handler_str.get("type","")=="pythonscript":
-                dialog_layout_str = handler_layout_lang_screen.replace("#type_method","html")
+                dialog_layout_str = dialog_layout_str.replace("#type_method","html")
 
                 try:
                     m = base64.b64decode(handler_str.get("method","")).decode("utf-8")

@@ -45,14 +45,14 @@ session["layouts_edit"] = False
 
 
 WSPORT = "1555"
-WS_URL = "https://192.168.1.41"
+WS_URL = "WRITE_YOUR_ADDRESS_HERE"
 
 locale_filename = "ru_locale.json"
 
 session["host_uid"]=""
 
 
-events_common = ["","onLaunch","onIntentBarcode","onBluetoothBarcode","onBackgroundCommand","onRecognitionListenerResult","onWEBMainTabSelected","onIntent","onWebServiceSyncCommand","onSQLDataChange","onSQLError","onCloseApp","WSIncomeMessage","onSimpleBusMessage","onSimpleBusConfirmation",]
+events_common = ["","onLaunch","onIntentBarcode","onBluetoothBarcode","onBackgroundCommand","onRecognitionListenerResult","onWEBMainTabSelected","onIntent","onWebServiceSyncCommand","onSQLDataChange","onSQLError","onCloseApp","WSIncomeMessage","onSimpleBusMessage","onSimpleBusResponse","onSimpleBusMessageDownload","onSimpleBusConfirmation","onWebEvent","onLaunchMenu","onInputMenu","onStartMenu","onServiceStarted","onHandlerError","onProcessClose","onPelicanInitialized","onPelicanInitError","onPelicanInitAction","onDirectWIFIMessage"]
 
 events_screen = ["","onStart","onPostStart","onInput","onResultPositive","onResultNegative"]
 
@@ -61,13 +61,13 @@ session["opened_element_uid"] = None
 main_menu_elements = ["","qr_settings","offline_exchange","documents","tasklist","product_log","store","save_settings","keyboard_test","ping_bt","update_configurations","Custom menu item"]
 
 action_types = ["","run","runasync","runprogress"]
-handler_types = ["","python","pythonargs","pythonbytes","online","http","sql","nosql","set","js","pythonscript"]
+handler_types = ["","python","pythonargs","pythonbytes","online","http","sql","nosql","set","js","pythonscript","pelican"]
 
 session["configuration"] = {"ClientConfiguration":{}}
 
 session["processes_table"] = []
 
-configuration_properties_list = ["ConfigurationName","ConfigurationFileName","ConfigurationVersion","ConfigurationDescription","agent","ForegroundService","StopForegroundServiceOnExit","BroadcastIntent","BroadcastVariable","FaceRecognitionURL","OnKeyboardMain","LaunchProcess","LaunchVar","MenuWebTemplate","Launch","HTMLHead"]
+configuration_properties_list = ["ConfigurationName","ConfigurationFileName","ConfigurationVersion","ConfigurationDescription","agent","ForegroundService","StopForegroundServiceOnExit","BroadcastIntent","BroadcastVariable","FaceRecognitionURL","OnKeyboardMain","LaunchProcess","LaunchVar","MenuWebTemplate","Launch","HTMLHead","HTMLdocument_ready","PyGeneral","PelicanInit"]
 configuration_settings_list = ["dictionaries","vendor","vendor_url","vendor_password","handler_split_mode","handler_url","handler_password"]
 
 mediafile_layout = {
@@ -404,16 +404,13 @@ handler_layout_lang_screen = {
 
 
 
-def get_text_from_ginthub(url,token):
+def get_text_from_github(url,token):
 
   # send a request
-  r = requests.get(
-      url,
-      headers={
-          'accept': 'application/vnd.github.v3.raw',
-          'authorization': 'token {}'.format(token)
-              }
-      )
+  if token=="" or token==None:
+    r = requests.get(url, headers={'accept': 'application/vnd.github.v3.raw'})  
+  else:    
+    r = requests.get(url, headers={'accept': 'application/vnd.github.v3.raw','authorization': 'token {}'.format(token)})
 
   
   if r.status_code>200:
@@ -532,6 +529,37 @@ def get_operation_elemets(root):
             if not "width" in el:
                 el["width"] = "wrap_content"  
                 
+            if "width" in el:
+                if get_key(scale_elements,el["width"])=="manual":
+                    if "width_value" in el:
+                        if len(el["width_value"])>0:
+                            width = int(el["width_value"])
+                        else:    
+                            width = 0
+                    else:
+                        width = 0        
+                else:
+                    width  = get_key(scale_elements,el["width"])
+
+                el["width"]    = width
+                el["width_value"]    = el["width"]
+            
+            if "height" in el:
+                if get_key(scale_elements,el["height"])=="manual":
+                    if "height_value" in el:
+                        if len(el["height_value"])>0:
+                            width = int(el["height_value"])
+                        else:    
+                            width = 0
+                    else:
+                        width = 0
+                        
+                else:
+                    width  = get_key(scale_elements,el["height"])
+
+                el["height"]    = width
+                el["height_value"]    = el["height"]     
+                
             new_element['Elements'].append(el)
 
     return new_element        
@@ -550,14 +578,47 @@ def configuration_open(hashMap,_files=None,_data=None):
     hashMap.put("host_uid",session["host_uid"]) 
     hashMap.put("Launch_elements",captions_start_screen_elements)
 
+    hashMap.put("HTMLHead",'<code-input required id="HTMLHead" style="resize: both; overflow: hidden; width: 100%;" lang="HTML" placeholder="Write some script!"></code-input>')
+    hashMap.put("HTMLdocument_ready",'<code-input required id="HTMLdocument_ready" style="resize: both; overflow: hidden; width: 100%;" lang="JavaScript" placeholder="Write some JavaScript!"></code-input>')
+    hashMap.put("PyGeneral",'<code-input required id="PyGeneral" style="resize: both; overflow: hidden; width: 100%;" lang="Python" placeholder="Write some Python!"></code-input>')
+    hashMap.put("PelicanInit",'<code-input required id="PelicanInit" style="resize: both; overflow: hidden; width: 100%;" lang="JSON"></code-input>')
     
     for prop in configuration_properties_list:
         hashMap.put(prop,session["configuration"]['ClientConfiguration'].get(prop,""))
         if prop == "Launch":
             hashMap.put(prop,get_synonym(start_screen_elements,session["configuration"]['ClientConfiguration'].get(prop,"")))
-        if prop == "HTMLHead":
+        elif prop == "HTMLHead":
+
+            txt = base64.b64decode(session["configuration"]['ClientConfiguration'].get(prop,"")).decode("utf-8")
+
+            text =  '<code-input required id="HTMLHead" style="resize: both; overflow: hidden; width: 100%;" lang="HTML" placeholder="Write some script!">'+txt+'</code-input>'
             
-            hashMap.put(prop,base64.b64decode(session["configuration"]['ClientConfiguration'].get(prop,"")).decode("utf-8"))    
+            hashMap.put(prop,text)    
+        
+        elif prop == "HTMLdocument_ready":
+            
+            txt = base64.b64decode(session["configuration"]['ClientConfiguration'].get(prop,"")).decode("utf-8")
+
+            text =  '<code-input required id="HTMLdocument_ready" style="resize: both; overflow: hidden; width: 100%;" lang="JavaScript" placeholder="Write some JavaScript!">'+txt+'</code-input>'
+            
+            hashMap.put(prop,text) 
+
+        elif prop == "PyGeneral":
+            
+            txt = base64.b64decode(session["configuration"]['ClientConfiguration'].get(prop,"")).decode("utf-8")
+
+            text =  '<code-input required id="PyGeneral" style="resize: both; overflow: hidden; width: 100%;" lang="Python" placeholder="Write some Python!">'+txt+'</code-input>'
+            
+            hashMap.put(prop,text) 
+            
+        elif prop == "PelicanInit":
+            
+            txt = session["configuration"]['ClientConfiguration'].get(prop,"")
+
+            text =  '<code-input required id="PelicanInit" style="resize: both; overflow: hidden; width: 100%;" lang="JSON">'+txt+'</code-input>'
+            
+            hashMap.put(prop,text) 
+
 
     if "ConfigurationSettings" in  session["configuration"]['ClientConfiguration']:
         for prop in configuration_settings_list:
@@ -766,7 +827,7 @@ def save_configuration(configuration,hashMap,full=False):
 
             if len(handlers_url)>0:
 
-                handlers_txt = get_text_from_ginthub(handlers_url,handlers_token)
+                handlers_txt = get_text_from_github(handlers_url,handlers_token)
                 if handlers_txt!=None:
                     new_configuration["ClientConfiguration"]["PyHandlers"] = base64.b64encode(handlers_txt.encode('utf-8')).decode('utf-8')
                 else:
@@ -775,7 +836,7 @@ def save_configuration(configuration,hashMap,full=False):
                 if "PyFiles" in configuration["ClientConfiguration"]:
                     for filestr in configuration["ClientConfiguration"]["PyFiles"]:
                         if  len(filestr.get("PyFileLink",""))>0:
-                            handlers_txt = get_text_from_ginthub(filestr.get("PyFileLink",""),handlers_token)
+                            handlers_txt = get_text_from_github(filestr.get("PyFileLink",""),handlers_token)
                             if handlers_txt!=None:
                                 filestr["PyFileData"] = base64.b64encode(handlers_txt.encode('utf-8')).decode('utf-8')
         elif new_configuration["ClientConfiguration"].get("agent") == True and not no_agent:
@@ -794,18 +855,18 @@ def save_configuration(configuration,hashMap,full=False):
 
             if str(jcookie.get("ui_to_github")).lower()=="true":
                 if new_configuration["ClientConfiguration"].get("ConfigurationFileName")!="" and new_configuration["ClientConfiguration"].get("ConfigurationFileName")!=None:
-                    r = push_to_github(filename, jcookie.get("ui_repo"), jcookie.get("ui_branch"), jcookie.get("ui_token"),new_configuration["ClientConfiguration"]["ConfigurationFileName"])
+                    r = push_to_github(filename, jcookie.get("ui_repo"), jcookie.get("ui_branch"), jcookie.get("ui_token"),new_configuration["ClientConfiguration"]["ConfigurationFileName"],jcookie.get("ui_folder", ""))
                     if r==False:
                         hashMap.put("toast","Не получилось отправить на GitHub")
         
         
 
-def push_to_github(filename, repo, branch, token,gitfilename):
+def push_to_github(filename, repo, branch, token,gitfilename,folder):
 
     if branch=="" or branch==None:
         branch="main"
 
-    url="https://api.github.com/repos/"+repo+"/contents/"+gitfilename
+    url="https://api.github.com/repos/"+repo+"/contents/"+folder+"/"+gitfilename
 
     base64content=base64.b64encode(open(filename,"rb").read())
 
@@ -830,6 +891,11 @@ def push_to_github(filename, repo, branch, token,gitfilename):
             resp=requests.put(url, data = message, headers = {"Content-Type": "application/json", "Authorization": "token "+token})
         else:    
             resp=requests.put(url, data = message)
+
+        if resp.status_code>203:    
+            print(resp.text) 
+            return False  
+
     else:        
         sha = data['sha']
 
@@ -850,7 +916,7 @@ def push_to_github(filename, repo, branch, token,gitfilename):
             print("nothing to update") 
             return False  
              
-    return True    
+    return True     
 
 def configuration_input(hashMap,_files=None,_data=None):
 
@@ -969,6 +1035,16 @@ def configuration_input(hashMap,_files=None,_data=None):
             if prop == "HTMLHead":
                 section_string = hashMap.get(prop)    
                 session["configuration"]['ClientConfiguration'][prop] = base64.b64encode(section_string.encode('utf-8')).decode('utf-8')
+
+            if prop == "HTMLdocument_ready":
+                section_string = hashMap.get(prop)    
+                session["configuration"]['ClientConfiguration'][prop] = base64.b64encode(section_string.encode('utf-8')).decode('utf-8')    
+
+            if prop == "PyGeneral":
+                section_string = hashMap.get(prop)    
+                session["configuration"]['ClientConfiguration'][prop] = base64.b64encode(section_string.encode('utf-8')).decode('utf-8')    
+
+                
                 
         if not 'ConfigurationSettings' in session["configuration"]['ClientConfiguration']: session["configuration"]['ClientConfiguration']['ConfigurationSettings']={}
 
@@ -1035,7 +1111,7 @@ captions_screen_elements = get_title_list(screen_elements)
 layout_elements = {"LinearLayout":get_locale("layout"),"Tabs":get_locale("Tabs"),"Tab":get_locale("Tab"),"TextView":get_locale("title"),"Button":get_locale("button"),
 "EditTextText":get_locale("string_input"),"EditTextNumeric":get_locale("numeric_input"),"EditTextPass":get_locale("password_input"),"EditTextAuto":get_locale("event_input"),"EditTextAutocomplete":get_locale("autocompete_input"),
 "ModernEditText":get_locale("modern_input"),"Picture":get_locale("picture"),"CheckBox":get_locale("checkbox"),"Gauge":get_locale("gauge"),"Chart":get_locale("chart"),"SpinnerLayout":get_locale("spinner"),"TableLayout":get_locale("table"),"CartLayout":get_locale("cart"),
-"MultilineText":get_locale("multiline"),"CardsLayout":get_locale("cards"),"CButtons":get_locale("buttons_list"),"CButtonsHorizontal":get_locale("horizontal_buttons_list"),"DateField":get_locale("date_input"),"ProgressButton":get_locale("progress_button"),"html":get_locale("HTML"),"map":get_locale("map"),"file":get_locale("file"),"object":get_locale("object")}
+"MultilineText":get_locale("multiline"),"CardsLayout":get_locale("cards"),"CButtons":get_locale("buttons_list"),"CButtonsHorizontal":get_locale("horizontal_buttons_list"),"DateField":get_locale("date_input"),"ProgressButton":get_locale("progress_button"),"html":get_locale("HTML"),"map":get_locale("map"),"file":get_locale("file"),"object":get_locale("object"),"camera":get_locale("camera")}
 captions_layout_elements =get_title_list(layout_elements)
 
 orientation_elements = {"vertical":get_locale("vertical"),"horizontal":get_locale("horizontal")}
@@ -1059,9 +1135,9 @@ captions_detector_elements = get_title_list(detector_elements)
 visual_mode_elements = {"list_only":get_locale("list_only"),"green_and_grey":get_locale("green_and_grey"),"green_and_red":get_locale("green_and_red"),"list_and_grey":get_locale("list_and_grey")}
 captions_visual_mode_elements = get_title_list(visual_mode_elements)
 
-resolution_elements = ['','HD1080','HD720','VGA','QVGA']
+resolution_elements = ['','4K','2K','HD1080','HD720','VGA','QVGA']
 
-start_screen_elements = {"Menu":get_locale("operations_menu"),"Tiles":get_locale("tiles_menu")}
+start_screen_elements = {"Menu":get_locale("operations_menu"),"Tiles":get_locale("tiles_menu"),"Process":"process"}
 captions_start_screen_elements  = get_title_list(start_screen_elements)
 
 detector_mode_elements = {"train":get_locale("training") ,"predict":get_locale("prediction")}
@@ -1826,6 +1902,7 @@ def screen_input(hashMap,_files=None,_data=None):
             
             hashMap.put("ShowDialogStyle",json.dumps({"yes":"Сохранить","no":"Отмена","title":"Обработчик"},ensure_ascii=False))
             hashMap.put("ShowDialog","")
+            hashMap.put("ShowDialogActive","type;type_postExecute")
 
             hashMap.put("alias",handler_str.get("alias",""))
             hashMap.put("event",handler_str.get("event",""))
@@ -1890,7 +1967,7 @@ def screen_input(hashMap,_files=None,_data=None):
                 hashMap.put("method",method)
                 
             elif handler_str.get("type","")=="pythonscript":
-                dialog_layout_str = handler_layout_lang_screen.replace("#type_method","html")
+                dialog_layout_str = dialog_layout_str.replace("#type_method","html")
 
                 try:
                     m = base64.b64decode(handler_str.get("method","")).decode("utf-8")
@@ -2049,7 +2126,7 @@ def element_input(hashMap,_files=None,_data=None):
                         "BackgroundColor":hashMap.get("BackgroundColor"),
                         "StrokeWidth":hashMap.get("StrokeWidth"),
                         "Padding":hashMap.get("Padding"),
-                        
+                        "Radius":hashMap.get("Radius"),
                         "weight":hashMap.get("weight"),
                         
                         "TextSize":hashMap.get("TextSize"),
@@ -2067,6 +2144,13 @@ def element_input(hashMap,_files=None,_data=None):
                 d["width_value"] = hashMap.get("width_value")
             if height == "manual":
                 d["height_value"] = hashMap.get("height_value")    
+                
+            if get_key(scale_elements,hashMap.get("width"))=="manual":
+                d["width_value"] = int(hashMap.get("width_value"))   
+                d["width"]="manual"
+            if get_key(scale_elements,hashMap.get("height"))=="manual":
+                d["height_value"] = int(hashMap.get("height_value")) 
+                d["height"]="manual"    
 
 
             if get_key(element_base,hashMap.get('type')) == 'LinearLayout' or get_key(element_base,hashMap.get('type')) == 'Tab' or get_key(element_base,hashMap.get('type')) == 'Tabs':
@@ -2089,6 +2173,7 @@ def element_input(hashMap,_files=None,_data=None):
             row[session["elements_table_id"]]['BackgroundColor'] = hashMap.get("BackgroundColor")
             row[session["elements_table_id"]]['StrokeWidth'] = hashMap.get("StrokeWidth")
             row[session["elements_table_id"]]['Padding'] = hashMap.get("Padding")
+            row[session["elements_table_id"]]['Radius'] = hashMap.get("Radius")
             row[session["elements_table_id"]]['height_value'] = hashMap.get("height_value")
             row[session["elements_table_id"]]['width_value'] = hashMap.get("width_value")
             row[session["elements_table_id"]]['weight'] = hashMap.get("weight")
@@ -2103,17 +2188,19 @@ def element_input(hashMap,_files=None,_data=None):
 
             row[session["elements_table_id"]]['uid'] = closeuid
 
-            if width == "manual":
+            if get_key(scale_elements,hashMap.get("width")) == "manual":
                 row[session["elements_table_id"]]["width_value"] = hashMap.get("width_value")
+                row[session["elements_table_id"]]["width"] = "manual"
             else:
                 if "width_value" in session["current_element"]:
                     del row[session["elements_table_id"]]["width_value"]    
             
-            if height == "manual":
+            if get_key(scale_elements,hashMap.get("height")) == "manual":
                 row[session["elements_table_id"]]["height_value"] = hashMap.get("height_value")  
+                row[session["elements_table_id"]]["height"] = "manual"
             else:
                 if "height_value" in session["current_element"]:
-                    del row[session["elements_table_id"]]["height_value"] 
+                    del row[session["elements_table_id"]]["height_value"]
 
 
         session["current_parent"] =(row[session["elements_table_id"]],session["current_parent"])
@@ -2522,6 +2609,7 @@ def element_open(hashMap,_files=None,_data=None):
         hashMap.put("BackgroundColor", session["current_element"].get("BackgroundColor",""))
         hashMap.put("StrokeWidth", session["current_element"].get("StrokeWidth",""))
         hashMap.put("Padding", session["current_element"].get("Padding",""))
+        hashMap.put("Radius", session["current_element"].get("Radius",""))
         hashMap.put("height_value", session["current_element"].get("height_value",""))
         hashMap.put("width_value", session["current_element"].get("width_value",""))
         hashMap.put("weight", session["current_element"].get("weight",""))
@@ -2534,7 +2622,13 @@ def element_open(hashMap,_files=None,_data=None):
         hashMap.put("RecognitionTemplate", session["current_element"].get("RecognitionTemplate",""))
         hashMap.put("style_name", session["current_element"].get("style_name",""))
 
-
+        if type(session["current_element"].get("height"))==int or str(session["current_element"].get("height")).isnumeric():
+            hashMap.put("height", get_synonym(scale_elements,"manual"))
+            hashMap.put("height_value", str(session["current_element"].get("height")))
+        
+        if type(session["current_element"].get("width"))==int or str(session["current_element"].get("width")).isnumeric():
+            hashMap.put("width", get_synonym(scale_elements,"manual"))
+            hashMap.put("width_value", str(session["current_element"].get("width")))   
 
         if "Elements" in session["current_element"]:
             hashMap.put("layout_elements_table",json.dumps(make_layoutelements_table(session["current_element"]["Elements"]),ensure_ascii=False))
@@ -2555,6 +2649,7 @@ def element_open(hashMap,_files=None,_data=None):
         hashMap.put("BackgroundColor", "")
         hashMap.put("StrokeWidth", "")
         hashMap.put("Padding", "")
+        hashMap.put("Radius", "")
         hashMap.put("height_value", "")
         hashMap.put("width_value", "")
         hashMap.put("weight", "")
@@ -2849,6 +2944,7 @@ def common_handlers_input(hashMap,_files=None,_data=None):
             
             hashMap.put("ShowDialogStyle",json.dumps({"yes":"Сохранить","no":"Отмена","title":"Обработчик"},ensure_ascii=False))
             hashMap.put("ShowDialog","")
+            hashMap.put("ShowDialogActive","type;type_postExecute")
 
             hashMap.put("alias",handler_str.get("alias",""))
             hashMap.put("event",handler_str.get("event",""))
@@ -3356,6 +3452,7 @@ def step_input(hashMap,_files=None,_data=None):
             
             hashMap.put("ShowDialogStyle",json.dumps({"yes":"Сохранить","no":"Отмена","title":"Обработчик"},ensure_ascii=False))
             hashMap.put("ShowDialog","")
+            hashMap.put("ShowDialogActive","type;type_postExecute")
 
             hashMap.put("alias",handler_str.get("alias",""))
             hashMap.put("event",handler_str.get("event",""))
@@ -4160,6 +4257,7 @@ def styles_input(hashMap,_files=None,_data=None):
         hashMap.put("BackgroundColor", "")
         hashMap.put("StrokeWidth", "")
         hashMap.put("Padding", "")
+        hashMap.put("Radius", "")
         hashMap.put("height_value", "")
         hashMap.put("width_value", "")
         hashMap.put("weight", "")
@@ -4202,6 +4300,7 @@ def styles_input(hashMap,_files=None,_data=None):
             hashMap.put("BackgroundColor", session["current_element"].get("BackgroundColor",""))
             hashMap.put("StrokeWidth", session["current_element"].get("StrokeWidth",""))
             hashMap.put("Padding", session["current_element"].get("Padding",""))
+            hashMap.put("Radius", session["current_element"].get("Radius",""))
             hashMap.put("height_value", session["current_element"].get("height_value",""))
             hashMap.put("width_value", session["current_element"].get("width_value",""))
             hashMap.put("weight", session["current_element"].get("weight",""))
@@ -4248,6 +4347,8 @@ def styles_input(hashMap,_files=None,_data=None):
                 "gravity_horizontal":get_key(gravity_elements,dialog_values.get("gravity_horizontal")),
                 "BackgroundColor":dialog_values.get("BackgroundColor"),
                 "StrokeWidth":dialog_values.get("StrokeWidth"),
+                "Padding":dialog_values.get("Padding"),
+                "Radius":dialog_values.get("Radius"),
                 "weight":dialog_values.get("weight"),
                 "TextSize":dialog_values.get("TextSize"),
                 "TextColor":dialog_values.get("TextColor"),
@@ -4273,6 +4374,7 @@ def styles_input(hashMap,_files=None,_data=None):
            session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['BackgroundColor'] = dialog_values.get("BackgroundColor")
            session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['StrokeWidth'] = dialog_values.get("StrokeWidth")
            session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['Padding'] = dialog_values.get("Padding")
+           session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['Radius'] = dialog_values.get("Radius")
            session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['height_value'] = dialog_values.get("height_value")
            session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['width_value'] = dialog_values.get("width_value")
            session["configuration"]['ClientConfiguration']["StyleTemplates"][session["styles_table_id"]]['weight'] = dialog_values.get("weight")
@@ -4558,6 +4660,7 @@ module_layout =     {
 session["modules_table_id"] = -1
 session["handlers_file_type"] = -1
 def modules_input(hashMap,_files=None,_data=None):
+
   
     if hashMap.get("listener")=="btn_add_file":
         session["modules_table_id"]  = -1
@@ -4609,7 +4712,8 @@ def modules_input(hashMap,_files=None,_data=None):
 
         filename = hashMap.get("base_path")+os.sep+"uploads"+os.sep+ hashMap.get("filename")
 
-        if session["handlers_file_type"] ==1:
+        #if session["handlers_file_type"] ==1:
+        if True:
             with open(filename, 'r',encoding='utf-8') as file:
                 data = file.read()
 
@@ -4637,8 +4741,8 @@ def modules_open(hashMap,_files=None,_data=None):
 
 </head>
 <body>
-<h3 style="font-size:14px; ">Можно использовать 3 варианта работы с модулями python</h3>
-<h3 style="font-size:14px; "><u>Вариант 1: Использовать GitHub приватный или публичный.</u></h3>
+<h3 style="font-size:14px; ">Самый простой способ работать с обработчиками python - pythonscript, не требует привязки к дополнительным файлам. Но если все таки требуется вести разработку во внешнем IDE то привязать внешние файлы к проекту Simple можно через GitHub</h3>
+<h3 style="font-size:14px; "><u>Можно использовать GitHub приватный или публичный.</u></h3>
 <ol>
   <li style="font-size:12px; ">Укажите URL основного файла обработчиков на GitHub в таком виде:
 <b>https://api.github.com/repos/ваш гитхаб/ваше репо/contents/имя_файла.py</b>
@@ -4655,24 +4759,7 @@ def modules_open(hashMap,_files=None,_data=None):
     header2 = """<!DOCTYPE html>
 <html>
 <body>
-<h3 style="font-size:14px; "><u>Вариант 2: Использовать программу-агент на локальном компьютере, которая будет отслеживать изменения в локальных файлах и передавать их в конфигурацию автоматически.</u></h3>
-<ol>
-  <li style="font-size:12px; ">Включите галочку Использовать агент на закладке Конфигурация и сохраните конфигурацию</li>
-  <li style="font-size:12px; ">При необходимости укажите ключи дополнительных модулей, не указывая больше ничего</li>
-  <li style="font-size:12px; ">Скачайте и запустите constructor_agent</li>
-  <li style="font-size:12px; ">Укажите URL веб-конструктора и ID публикации: <a href="{{docdata.url}}">{{ docdata.url }}</a> и <b>{{docdata.uid}}</b></li>
-  
-  <a href="https://ibb.co/2WfVhxr"><img src="https://i.ibb.co/k5WbBjT/agent.png" alt="agent" border="0"></a>
-
-  <li style="font-size:12px; ">Нажмите Connect (также при необходимости этой кнопкой можно обновить состав)</li>
-  <li style="font-size:12px; ">Изменения отслеживаются каждую секунду, при сохранении конфигурации измененные тексты модулей будут применены в конфигурации</li>
-</ol>  
-
-<h3 style="font-size:14px; "><u>Вариант 3: просто указать файлы.</u></h3>
-<ol>
-  <li style="font-size:12px; ">Укажите файлы python модуля обработчиков, при необходимости дополнительных модулей и они применятся сразу же</li>
-  <li style="font-size:12px; ">Изменения не отслеживаются. При изменениях в модулях требуется вручную повторить п.1</li>
-</ol>  
+ 
 </body>
 </html>
 """
@@ -4803,7 +4890,7 @@ def info_on_start(hashMap,_files=None,_data=None):
 
 <p><font style="font-size: 20px !important;">Сайт <a href="http://simpleui.ru/" target="_blank">http://simpleui.ru/</a></font></p>
 
-<p><font style="font-size: 20px !important;">Мои статьи на Инфостарт <a href="https://infostart.ru/profile/129563/public/" target="_blank">http://simpleui.ru/</a></font></p>
+<p><font style="font-size: 20px !important;">Мои статьи на Инфостарт <a href="https://infostart.ru/profile/129563/public/" target="_blank">https://infostart.ru/profile/129563/public/</a></font></p>
 
 </div>
 
@@ -5089,4 +5176,755 @@ def user_input(hashMap,_files=None,_data=None):
 
 
 
+    return hashMap
+
+
+#Отладка
+def debug_open(hashMap,_files=None,_data=None):
+    
+    if 'sid' in session:
+        img = qrcode.make(json.dumps({"url": WS_URL+":"+str(WSPORT)+"/debug","sid":session["sid"]})) 
+        buffered = BytesIO()
+        img.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        hashMap.put("qr",img_str)         
+
+    return hashMap
+
+def debug_next(hashMap,_files=None,_data=None):
+    hashMap.put("next_"+session["sid"],"")   
+
+    return hashMap
+def debug_add(hashMap,_files=None,_data=None):
+    hashMap.put("TableAddRow","StackTable")   
+
+    return hashMap
+def debug_edit(hashMap,_files=None,_data=None):
+    jtable = json.loads(hashMap.get("StackTable"))
+    jselline = json.loads(hashMap.get("selected_line"))
+    
+    if hashMap.get("selected_line_id") == "-1":
+        jtable["rows"].append(jselline)
+    else:    
+        jtable["rows"][int(hashMap.get("selected_line_id"))]["value"] = jselline.get("value")
+        jtable["rows"][int(hashMap.get("selected_line_id"))]["variable"] = jselline.get("variable")
+    hashMap.put("StackTable",json.dumps(jtable,ensure_ascii=False)) 
+
+    hashMap.put("RefreshScreen","")  
+
+    return hashMap
+
+
+#Векторный редактор
+class Cell():
+    x1 = 0
+    x2 = 0
+    y1 = 0
+    y2 = 0
+    color=None
+    fillcolor=None
+    address=""
+
+class Line():
+    x1 = 0
+    x2 = 0
+    y1 = 0
+    y2 = 0
+    color=None
+    strock_size=None
+    def __init__(self,x1,y1,x2,y2,strock_size):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.strock_size = strock_size
+
+class Label():
+    x = 0
+    y = 0
+    text = 0
+    size = 0
+    
+    def __init__(self,x,y,text,size):
+        self.x = x
+        self.y = y
+        self.text = text
+        self.size = size        
+      
+class Rect():
+    x1 = 0
+    x2 = 0
+    y1 = 0
+    y2 = 0
+    color=None
+    strock_size=None
+    def __init__(self,x1,y1,x2,y2,strock_size):
+        self.x1 = x1
+        self.y1 = y1
+        self.x2 = x2
+        self.y2 = y2
+        self.strock_size = strock_size  
+
+class Row():
+    def __init__(self, cells, num_rows, num_columns,cell_size,x,y):
+        self.cells = cells
+        self.num_rows = num_rows
+        self.num_columns = num_columns
+        self.cell_size = cell_size
+        self.x = x
+        self.y = y
+
+
+session["current_cell"] = None
+session["current_line"] = None
+session["current_rect"] = None
+session["current_text"] = None
+session["draw_mode"] = ""
+
+CANVAS_H = 500
+CANVAS_W = 500
+GRIDSIZE = 21
+
+STROCK_SIZE = 3
+
+RATIO_STROCK = 60
+RATIO_TEXT_SIZE = 5
+
+cellsize = 25
+rows = []
+labels = []
+rectangles = []
+vectors = []
+
+def redraw(hashMap):
+    global cells
+
+    draw_array = []
+
+    
+
+
+    for r in session["rows"]:
+        for cell in r.cells :
+            draw_array.append({"type":"cell","x1":cell.x1,"y1":cell.y1,"x2":cell.x2,"y2":cell.y2, "label":cell.address, "fill_color":"#c6f2f5"})
+
+    for el in session["vectors"]:
+        draw_array.append({"type":"line","x1":el.x1,"y1":el.y1,"x2":el.x2,"y2":el.y2, "color":"#0a1a45","strock_size":el.strock_size})        
+
+    #hashMap.put("SetCanvas",json.dumps({"map":{"height":CANVAS_H,"width":CANVAS_W,"draw":draw_array}}))
+    for el in session["rectangles"]:
+        
+        draw_array.append({"type":"rect","x1":el.x1,"y1":el.y1,"x2":el.x2,"y2":el.y2, "color":"#0a1a45","strock_size":el.strock_size,"fill_color":"#ffffff"})        
+   
+    for el in session["labels"]:
+        draw_array.append({"type":"text","x":el.x,"y":el.y,"text":el.text, "color":"#0a1a45","size":el.size})        
+
+    hashMap.put("SetCanvas",json.dumps({"map":{"height":CANVAS_H,"width":CANVAS_W,"draw":draw_array}}))
+
+    return hashMap
+
+def canvas_on_start(hashMap,_files=None,_data=None):
+    hashMap.put("InitCanvas",json.dumps({"map":{"height":CANVAS_H,"width":CANVAS_W}}))
+    hashMap.put("size","3")
+
+    if hashMap.containsKey("sug_reload"):
+        hashMap.remove("sug_reload")
+        hashMap = redraw(hashMap)
+    else:    
+        session["cells"] = []
+        session["rows"] = []
+        session["labels"] = []
+        session["rectangles"] = []
+        session["vectors"] = []
+    
+    
+
+    session["current_row"] = None
+    session["current_line"] = None
+    session["current_rect"] = None
+    session["current_text"] = None
+    
+    
+    
+
+    return hashMap
+
+
+dialog_row = {
+                        "Value": "",
+                        "Variable": "",
+                        "type": "LinearLayout",
+                        "weight": "0",
+                        "height": "match_parent",
+                        "width": "match_parent",
+                        "orientation": "vertical",
+                        "Elements": [
+                            {
+                                "type": "EditTextNumeric",
+                                "height": "wrap_content",
+                                "width": "match_parent",
+                                "weight": "0",
+                                "Value": "Количество столбцов|@columns",
+                                "Variable": "columns",
+                                "gravity_horizontal": "left"
+                            },
+                            {
+                                "type": "EditTextNumeric",
+                                "height": "wrap_content",
+                                "width": "match_parent",
+                                "weight": "0",
+                                "Value": "Количество строк|@rows",
+                                "Variable": "rows",
+                                "gravity_horizontal": "left"
+                            }
+                            
+                        ],
+                        "BackgroundColor": "#fcd39d",
+                        "StrokeWidth": "2",
+                        "Padding": ""
+        }
+
+dialog_cell = {
+                        "Value": "",
+                        "Variable": "",
+                        "type": "LinearLayout",
+                        "weight": "0",
+                        "height": "match_parent",
+                        "width": "match_parent",
+                        "orientation": "vertical",
+                        "Elements": [
+                            {
+                                "type": "EditTextText",
+                                "height": "wrap_content",
+                                "width": "match_parent",
+                                "weight": "0",
+                                "Value": "Имя ячейки|@cell",
+                                "Variable": "cell",
+                                "gravity_horizontal": "left"
+                            }
+                            
+                        ],
+                        "BackgroundColor": "",
+                        "StrokeWidth": "",
+                        "Padding": ""
+        }
+
+dialog_text = {
+                        "Value": "",
+                        "Variable": "",
+                        "type": "LinearLayout",
+                        "weight": "0",
+                        "height": "match_parent",
+                        "width": "match_parent",
+                        "orientation": "vertical",
+                        "Elements": [
+                            {
+                                "type": "EditTextText",
+                                "height": "wrap_content",
+                                "width": "match_parent",
+                                "weight": "0",
+                                "Value": "Текст надписи|@text",
+                                "Variable": "text",
+                                "gravity_horizontal": "left"
+                            }
+                            
+                        ],
+                        "BackgroundColor": "",
+                        "StrokeWidth": "",
+                        "Padding": ""
+        }
+
+
+
+def mouse_input(hashMap,_files=None,_data=None):
+    global rows
+    global vectors
+    global labels
+    global rectangles
+
+    data = json.loads(hashMap.get("map"))
+
+    if len(rows)>0:
+        for r in rows:
+            session['rows'].append(r)
+        rows = []
+    if len(vectors)>0:
+        for r in vectors:
+            session['vectors'].append(r)
+        vectors = []    
+    if len(labels)>0:
+        for r in labels:
+            session['labels'].append(r)
+        labels = [] 
+    if len(rectangles)>0:
+        for r in rectangles:
+            session['rectangles'].append(r)
+        rectangles = []  
+    
+    
+    if data.get("type") == "mouseDown":
+        if "draw_mode" in session:     
+            if session["draw_mode"] == "address":
+                session["current_row"]=None
+                session["current_cell"]=None
+                for r in session["rows"]:
+                    for cell in r.cells :
+                        if (data.get("x")>=cell.x1 and data.get("x")<=cell.x2) and (data.get("y")>=cell.y1 and data.get("y")<=cell.y2):
+                            session["current_row"] = r
+                            session["current_cell"] = cell
+                            break
+                
+                if session["current_row"]!=None:
+                    hashMap.put("ShowDialogLayout",json.dumps(dialog_cell,ensure_ascii=False))
+                    hashMap.put("ShowDialogStyle",json.dumps({"yes":"Сохранить","no":"Отмена","title":"Редактировнаие ячейки"},ensure_ascii=False))
+                    hashMap.put("ShowDialog","") 
+
+                    hashMap.put("StopCanvasEvents","")     
+
+            elif session["draw_mode"] == "row":
+                session["current_row"]=None
+                for r in session["rows"]:
+                    for cell in r.cells :
+                        if (data.get("x")>=cell.x1 and data.get("x")<=cell.x2) and (data.get("y")>=cell.y1 and data.get("y")<=cell.y2):
+                            session["current_row"] = r
+                            break
+                if session["current_row"]==None:
+                    r = generate_row(data.get("x"),data.get("y"),STROCK_SIZE*RATIO_TEXT_SIZE,int(hashMap.get("rows")),int(hashMap.get("columns"))) 
+                    session["rows"].append(r)   
+                    
+
+
+
+                
+            elif session["draw_mode"] == "line": 
+                for r in session["vectors"]:
+                        if (data.get("x")>=min(r.x1,r.x2) and data.get("x")<=max(r.x2,r.x1)) and (data.get("y")>=min(r.y1,r.y2) and data.get("y")<=max(r.y2,r.y1)):
+                            session["current_line"] = r
+                            break
+                if session["current_line"]==None:
+                    r = Line(data.get("x"),data.get("y"),data.get("x"),data.get("y"),STROCK_SIZE)
+                    session["vectors"].append(r)
+                    session["current_line"]=r
+            elif session["draw_mode"] == "rect": 
+                session["current_rect"]=None
+                for r in session["rectangles"]:
+                        if (data.get("x")>=r.x1 and data.get("x")<=r.x2) and (data.get("y")>=r.y1 and data.get("y")<=r.y2):
+                            session["current_rect"] = r
+                            #session["edit_mode"] = True
+                            break
+                if session["current_rect"]==None:
+                    session["edit_mode"] = False
+                    r = Rect(data.get("x"),data.get("y"),data.get("x"),data.get("y"),STROCK_SIZE)
+                    session["rectangles"].append(r)
+                    session["current_rect"]=r        
+            elif session["draw_mode"] == "text": 
+                session["current_text"]=None
+                for r in session["labels"]:
+                        if (data.get("x")>=(r.x-5) and data.get("x")<=(r.x+10)) and (data.get("y")>=(r.y-5) and data.get("y")<=(r.y+5)):
+                            session["current_text"] = r
+                            session["edit_mode"] = True
+                            break
+                if session["current_text"]==None:
+                    session["edit_mode"] = False
+                    r = Label(data.get("x"),data.get("y"),session["label_text"],STROCK_SIZE*RATIO_TEXT_SIZE)
+                    session["labels"].append(r)
+                    session["current_text"]=r         
+            elif session["draw_mode"] == "delete":
+                for r in session["rows"]:
+                    for cell in r.cells :
+                        if (data.get("x")>=cell.x1 and data.get("x")<=cell.x2) and (data.get("y")>=cell.y1 and data.get("y")<=cell.y2):
+                            session["rows"].remove(r)    
+                            break    
+                for r in session["vectors"]:
+                        if (data.get("x")>=min(r.x1,r.x2) and data.get("x")<=max(r.x2,r.x1)) and (data.get("y")>=min(r.y1,r.y2) and data.get("y")<=max(r.y2,r.y1)):
+                            session["vectors"].remove(r)    
+                            break   
+                for r in session["rectangles"]:
+                        if (data.get("x")>=(r.x1-5) and data.get("x")<=(r.x2+5)) and (data.get("y")>=(r.y1-5) and data.get("y")<=(r.y2+5)):
+                            session["rectangles"].remove(r)
+                            break   
+                for r in session["labels"]:
+                        if (data.get("x")>=(r.x-5) and data.get("x")<=(r.x+10)) and (data.get("y")>=(r.y-5) and data.get("y")<=(r.y+5)):
+                            session["labels"].remove(r)
+                            break                    
+            hashMap = redraw(hashMap)
+    elif data.get("type") == "mouseMove" and  (not hashMap.get("AddressMode")==True) : 
+        if "draw_mode" in session:
+            if session["draw_mode"] == "row":   
+                if session["current_row"]!=None:
+                    session["current_row"] = update_row(session["current_row"],data.get("x"),data.get("y"))
+                    hashMap = redraw(hashMap)
+            elif session["draw_mode"] == "line":
+                if session["current_line"]!=None:     
+                    session["current_line"].x2 =data.get("x")
+                    session["current_line"].y2 =data.get("y")
+            
+                    hashMap = redraw(hashMap)
+            elif session["draw_mode"] == "rect":
+                
+                if session["current_rect"]!=None:  
+                    print(session["edit_mode"])
+                    if session["edit_mode"] == True:
+                        offsetx = session["current_rect"].x1 - data.get("x")
+                        offsety = session["current_rect"].y1 - data.get("y")
+
+                        #session["current_rect"].x1 =  data.get("x")    
+                        #session["current_rect"].y1 =  data.get("y")    
+                        
+                        session["current_rect"].x1 -=offsetx
+                        session["current_rect"].x2 -=offsetx
+                        session["current_rect"].y1 -=offsety
+                        session["current_rect"].y2 -=offsety
+
+                    else:      
+                    
+                        session["current_rect"].x2 =data.get("x")
+                        session["current_rect"].y2 =data.get("y")
+            
+                    hashMap = redraw(hashMap)
+            elif session["draw_mode"] == "text":
+                if session["current_text"]!=None:  
+                    if session["edit_mode"] == True:
+                                            
+                        session["current_text"].x =data.get("x")
+                        session["current_text"].y =data.get("y")
+                    
+
+                    else:      
+                        session["current_text"].x =data.get("x")
+                        session["current_text"].y =data.get("y")
+            
+                    hashMap = redraw(hashMap)        
+
+    elif data.get("type") == "mouseUp" and (not hashMap.get("AddressMode")==True):
+        if "draw_mode" in session:
+            if session["draw_mode"] == "row": 
+                session["current_row"]=None 
+            if session["draw_mode"] == "line": 
+                session["current_line"]=None       
+            if session["draw_mode"] == "rect": 
+                session["current_rect"]=None 
+            if session["draw_mode"] == "text": 
+                session["current_text"]=None 
+                                    
+            
+         
+
+    return hashMap
+
+def generate_row(x,y,cellsize,num_rows,num_columns):
+    _cells = []
+    
+    caddr = 0
+    offset_x = 0
+    for j in range(num_columns):
+        offset_y = 0
+        for i in range(num_rows):
+            c = Cell()
+            c.x1 = x+offset_x
+            c.x2 = c.x1 + cellsize
+            c.y1 = y+offset_y
+            c.y2 = c.y1 + cellsize
+            caddr+=1
+            c.address = str(caddr)
+
+            _cells.append(c)
+
+            offset_y+=cellsize
+        offset_x +=cellsize
+
+    r = Row(_cells,num_rows,num_columns,cellsize,x,y)  
+
+    return r 
+
+def update_row(r,x,y):
+    offsetx = r.x -x
+    offsety = r.y -y
+
+    r.x = x
+    r.y = y
+    
+    for c in r.cells:
+        c.x1 -=offsetx
+        c.x2 -=offsetx
+        c.y1 -=offsety
+        c.y2 -=offsety
+
+    return r 
+def update_row_cellsize(r,x,y,cellsize):
+    
+    ii=0
+    offset_x = 0
+    for j in range(r.num_columns):
+        offset_y = 0
+        for i in range(r.num_rows):
+            c = r.cells[ii]
+            ii+=1
+            c.x1 = x+offset_x
+            c.x2 = c.x1 + cellsize
+            c.y1 = y+offset_y
+            c.y2 = c.y1 + cellsize
+
+            offset_y+=cellsize
+        offset_x +=cellsize
+
+    return r 
+
+def cell_input(hashMap,_files=None,_data=None):
+    global rows
+    global vectors
+    global labels
+    global rectangles
+    global GRIDSIZE
+    global STROCK_SIZE
+
+    if len(rows)>0:
+        for r in rows:
+            session['rows'].append(r)
+        rows = []
+    if len(vectors)>0:
+        for r in vectors:
+            session['vectors'].append(r)
+        vectors = []    
+    if len(labels)>0:
+        for r in labels:
+            session['labels'].append(r)
+        labels = [] 
+    if len(rectangles)>0:
+        for r in rectangles:
+            session['rectangles'].append(r)
+        rectangles = []         
+    
+    if hashMap.get("listener") == "canvas_mouse_event":
+        return hashMap    
+
+    if hashMap.get("listener") == "btn_row":
+        session["draw_mode"] = "row"
+
+        if not hashMap.containsKey("rows"):
+            hashMap.put("rows","1")
+            hashMap.put("columns","1")
+
+        hashMap.put("ShowDialogLayout",json.dumps(dialog_row,ensure_ascii=False))
+        hashMap.put("ShowDialogStyle",json.dumps({"yes":"Сохранить","no":"Отмена","title":"Добавления ряда ячеек"},ensure_ascii=False))
+        hashMap.put("ShowDialog","") 
+
+        hashMap.put("StopCanvasEvents","") 
+    if hashMap.get("listener") == "btn_addr":
+        session["draw_mode"] = "address"    
+    if hashMap.get("listener") == "btn_line":
+        session["draw_mode"] = "line"    
+    if hashMap.get("listener") == "btn_rect":
+        session["draw_mode"] = "rect"    
+    if hashMap.get("listener") == "btn_text":
+        session["label_text"] = ""
+        session["draw_mode"] = "text"
+
+
+
+        hashMap.put("ShowDialogLayout",json.dumps(dialog_text,ensure_ascii=False))
+        hashMap.put("ShowDialogStyle",json.dumps({"yes":"Сохранить","no":"Отмена","title":"Ввод текста"},ensure_ascii=False))
+        hashMap.put("ShowDialog","") 
+
+        hashMap.put("StopCanvasEvents","") 
+    if hashMap.get("listener") == "btn_delete":
+        session["draw_mode"] = "delete"     
+
+    if hashMap.get("listener") == "size":
+        STROCK_SIZE=int(hashMap.get("size"))
+        if session["draw_mode"] == "text":
+            if len(session["labels"])>0:
+                session["labels"][len(session["labels"])-1].size = STROCK_SIZE*RATIO_TEXT_SIZE
+                hashMap = redraw(hashMap)
+        elif session["draw_mode"] == "line":
+            if len(session["vectors"])>0:
+                session["vectors"][len(session["vectors"])-1].strock_size = STROCK_SIZE
+                hashMap = redraw(hashMap)
+        elif session["draw_mode"] == "rect":
+            if len(session["rectangles"])>0:
+                session["rectangles"][len(session["rectangles"])-1].strock_size = STROCK_SIZE
+                hashMap = redraw(hashMap)  
+        elif session["draw_mode"] == "row":
+            if len(session["rows"])>0:
+                r = session["rows"][len(session["rows"])-1]
+                r = update_row_cellsize(r,r.x,r.y,STROCK_SIZE*RATIO_TEXT_SIZE)
+               
+                hashMap = redraw(hashMap)                
+
+    if hashMap.get("listener") == "onResultPositive": 
+        if session["draw_mode"] == "address":
+            dialog_values = list_to_dict(json.loads(hashMap.get("dialog_values")))
+            
+            session["current_cell"].address = dialog_values.get("cell")
+            hashMap = redraw(hashMap)
+            session["current_cell"] = None
+            hashMap.put("StartCanvasEvents","") 
+        if session["draw_mode"] == "row":
+            
+
+
+            dialog_values = list_to_dict(json.loads(hashMap.get("dialog_values")))
+            hashMap.put("rows",str(dialog_values.get("rows")))
+            hashMap.put("columns",str(dialog_values.get("columns")))
+            hashMap.put("StartCanvasEvents","") 
+            
+        if session["draw_mode"] == "text":
+            dialog_values = list_to_dict(json.loads(hashMap.get("dialog_values")))    
+            session["label_text"] = dialog_values.get("text")
+
+    elif hashMap.get("listener") == 'btn_upload':
+        id = "sug_file"
+        
+
+        hashMap.put("UploadFile",id)
+    elif hashMap.get("listener") == 'btn_new':
+        hashMap.put("SetValuesEdit",json.dumps([{"file_h":"1050"},{"file_w":"1900"},{"size":"1"}],ensure_ascii=False))    
+        session["rows"] = []
+        session["vectors"] = []
+        session["rectangles"] = []
+        session["labels"] = []
+        session["cells"] = []
+        rows = []
+        vectors = []
+        labels = []
+        rectangles = []
+
+        hashMap.put("InitCanvas",json.dumps({"map":{"height":CANVAS_H,"width":CANVAS_W}}))
+        
+
+        
+            
+    elif hashMap.get("listener") == "upload_file":    
+        session["rows"] = []
+        session["vectors"] = []
+        session["rectangles"] = []
+        session["labels"] = []
+        session["cells"] = []
+        rows = []
+        vectors = []
+        labels = []
+        rectangles = []
+
+
+        session["filenamesug"] =hashMap.get("base_path")+os.sep+"uploads"+os.sep+ hashMap.get("filename")
+        session["filenamesug_base"] = hashMap.get("filename")[21:]
+        with open(session["filenamesug"],encoding="utf-8") as conf_file:
+            jsug = json.load(conf_file)
+            file_w = jsug.get("columncount")*jsug.get("gridsize")
+            file_h = jsug.get("rowcount")*jsug.get("gridsize")
+
+            hashMap.put("file_w",str(file_w))
+            hashMap.put("file_h",str(file_h))
+
+
+
+            
+            hashMap.put("SetValuesEdit",json.dumps([{"file_h":hashMap.get("file_h")},{"file_w":hashMap.get("file_w")}],ensure_ascii=False))
+
+
+            ratio = CANVAS_H/max(file_w,file_h)
+
+            GRIDSIZE = jsug.get("gridsize")
+
+            if 'rows' in jsug:
+                jrows = json.loads(jsug['rows'])
+                for obj in jrows['dataList']:
+                    firstcell =  obj['cells'][0]
+                    _cells = []
+                   
+                    for cell in obj['cells']:
+                        c = Cell()
+                        c.x1 = int(cell["x1"]*ratio)
+                        c.x2 = int(cell["x2"]*ratio)
+                        c.y1 = int(cell["y1"]*ratio)
+                        c.y2 = int(cell["y2"]*ratio)
+                        c.address = cell.get("address","")
+
+                        _cells.append(c)
+
+                    r = Row(_cells,obj['count_cells_in_row'],obj['count_columns'],int(firstcell['size']*ratio),int(firstcell['x1']*ratio),int(firstcell['y1']*ratio)) 
+                    session["rows"].append(r)
+                    rows.append(r)
+            if 'vectors' in jsug:
+                jelements = json.loads(jsug['vectors'])
+                for obj in jelements['dataList']:
+                    l =  Line(int(obj.get("x1")*ratio),int(obj.get("y1")*ratio),int(obj.get("x2")*ratio),int(obj.get("y2")*ratio),int(obj.get("strock_size")/RATIO_STROCK))
+                    vectors.append(l) 
+                    session['vectors'].append(l)
+            if 'labels' in jsug:
+                jelements = json.loads(jsug['labels'])
+                for obj in jelements['dataList']:
+                    l =  Label(int(obj.get("x")*ratio),int(obj.get("y")*ratio),obj.get("text"), int(obj.get("size")/RATIO_TEXT_SIZE))
+                    labels.append(l)
+                    session["labels"].append(l)                       
+            if 'rects' in jsug:
+                jelements = json.loads(jsug['rects'])
+                for obj in jelements['dataList']: 
+                    r = Rect(int(obj.get("x1")*ratio),int(obj.get("y1")*ratio),int(obj.get("x2")*ratio),int(obj.get("y2")*ratio),int(obj.get("strock_size")/RATIO_STROCK))
+                    rectangles.append(r)                       
+                    session["rectangles"].append(r)                       
+            
+            hashMap = redraw(hashMap)
+            #hashMap = redraw(hashMap)
+            #hashMap.put("RefreshScreen","")
+            #hashMap.put('sug_reload',"")
+            
+    elif  hashMap.get("listener") == "btn_savesug":  
+        if not "sug_uid" in session:
+            session["sug_uid"] = str(uuid.uuid4().hex) 
+
+        session["sugfilename"] = hashMap.get("base_path")+os.sep+"uploads"+os.sep+session["sug_uid"]+".sug" 
+        
+        file_w = hashMap.get("file_w")
+        file_h = hashMap.get("file_h")
+        if file_w == None or file_h==None:
+            hashMap.put("toast","Не заданы размеры изображения")
+            return hashMap
+        elif  max(file_w,file_h)==0:
+            hashMap.put("toast","Не заданы размеры изображения")
+            return hashMap
+        else:       
+            ratio = CANVAS_H/max(int(file_w),int(file_h))
+        
+        json_out = {"columncount":int(int(file_w)/GRIDSIZE),"rowcount":int(int(file_h)/GRIDSIZE),"gridsize":GRIDSIZE}
+        datalist = []
+        if len(session["rows"]):
+            for row in session["rows"]:
+                row_out = {"count_cells_in_row":row.num_rows,"count_columns":row.num_columns,"orientation":1,"size":int(row.cell_size/ratio),"cells":[],"deleted":False}
+                for cell in row.cells:
+                    c = {"address":cell.address,"x1":int(cell.x1/ratio),"y1":int(cell.y1/ratio), "x2":int(cell.x2/ratio), "y2":int(cell.y2/ratio),"size":int(row.cell_size/ratio),"fillcolor":0,"entarnce_moved":False,"orientation":0,"entrance":{"color":3,"x1":cell.x1,"x2":cell.x1+GRIDSIZE,"y1":cell.y1,"y2":cell.y1+GRIDSIZE}}
+                    row_out["cells"].append(c)
+                datalist.append(row_out)    
+        json_out["rows"] = json.dumps({"dataList":datalist},ensure_ascii=False)
+
+        if len(session["labels"]):
+            datalist = []
+            for elem in session["labels"]:
+                elem_out = {"x":int(elem.x/ratio),"y":int(elem.y/ratio),"size":elem.size*RATIO_TEXT_SIZE,"text":elem.text}
+                
+                datalist.append(elem_out)    
+            json_out["labels"] = json.dumps({"dataList":datalist},ensure_ascii=False)
+        if len(session["rectangles"]):
+            datalist = []
+            for elem in session["rectangles"]:
+                elem_out = {"x1":int(elem.x1/ratio),"y1":int(elem.y1/ratio),"x2":int(elem.x2/ratio),"y2":int(elem.y2/ratio),"strock_size":elem.strock_size*RATIO_STROCK}
+                
+                datalist.append(elem_out)    
+            json_out["rects"] = json.dumps({"dataList":datalist},ensure_ascii=False)  
+        if len(session["vectors"]):
+            datalist = []
+            for elem in session["vectors"]:
+                elem_out = {"x1":int(elem.x1/ratio),"y1":int(elem.y1/ratio),"x2":int(elem.x2/ratio),"y2":int(elem.y2/ratio),"strock_size":elem.strock_size*RATIO_STROCK}
+                
+                datalist.append(elem_out)    
+            json_out["vectors"] = json.dumps({"dataList":datalist},ensure_ascii=False)        
+        with open(session["sugfilename"] , 'w',encoding="utf-8") as f:
+            json.dump(json_out, f,ensure_ascii=False,indent=4) 
+            hashMap.put("download_sug",'sug-file тут: <a href="/download_file?filename='+Path(session["sugfilename"]).name+'" target="_blank" download="vector_drawable.sug">скачать sug-файл</a>')     
+            hashMap.put("SetValues",json.dumps([{"download_sug":hashMap.get("download_sug")}],ensure_ascii=False))
+
+
+
+        #hashMap.put("DownloadFile",session["filename"])  
+        
     return hashMap

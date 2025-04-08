@@ -1,6 +1,7 @@
 {
     "headings_processes":"Процессы",
     "file":"Файл",
+    "camera":"ActiveCV",
     "create_project":"Новый проект...",
     "open_project":"Открыть проект...",
     "qr_settings":"QR-настройки",
@@ -271,7 +272,8 @@
     "generator_file":"Файл генератора",
     "classes_file":"Файл классов",
     "generate_forms":"Запуск",
-    "fab":"Плавающая кнопка"
+    "fab":"Плавающая кнопка",
+    "DataSetField":"Поле датасета"
 
 
 
